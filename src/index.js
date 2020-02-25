@@ -411,6 +411,16 @@ module.exports = (options) => {
 			},
 			onStreamFinished: (siteId, handler) => {
 				on(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), handler)
+			},
+			error: async (err) => {
+				logger.error('Audio server error:', err)
+				await publish(topics.AUDIO_SERVER_ERROR, serialize({
+					siteId,
+					error: err
+				}))
+			},
+			onError: handler => {
+				return on(topics.AUDIO_SERVER_ERROR, handler)
 			}
 		},
 		injection: {
