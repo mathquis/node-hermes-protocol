@@ -1,0 +1,31 @@
+{
+  "name": "@mathquis/node-hermes-protocol",
+  "version": "1.0.0",
+  "description": "Hermes protocol for Node.js using agnostic client (MQTT, Websocket, etc.)",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mathquis/node-hermes-protocol.git"
+  },
+  "keywords": [
+    "node.js",
+    "hermes",
+    "protocol",
+    "assistant",
+    "voice",
+    "mqtt",
+    "websocket"
+  ],
+  "author": "Mathieu \"Fastjack\" Quisefit",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mathquis/node-hermes-protocol/issues"
+  },
+  "homepage": "https://github.com/mathquis/node-hermes-protocol#readme",
+  "dependencies": {
+    "mqtt": "^3.0.0"
+  }
+}
