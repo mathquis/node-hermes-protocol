@@ -127,6 +127,16 @@ module.exports = (options) => {
 			},
 			onIntentNotRecognized: handler => {
 				return on(topics.DIALOGUE_INTENT_NOT_RECOGNIZED, handler)
+			},
+			error: async (err, context) => {
+				logger.error('Dialogue error:', err)
+				await publish(topics.DIALOGUE_ERROR, serialize({
+					error: err,
+					context
+				}))
+			},
+			onError: handler => {
+				return on(topics.DIALOGUE_ERROR, handler)
 			}
 		},
 		feedback: {
@@ -182,6 +192,17 @@ module.exports = (options) => {
 			},
 			onDetected: handler => {
 				return on(format(topics.HOTWORD_DETECTED, {modelId: '+'}), handler)
+			},
+			error: async (siteId, err, context) => {
+				logger.error('ASR error:', err)
+				await publish(topics.HOTWORD_ERROR, serialize({
+					siteId,
+					error: err,
+					context
+				}))
+			},
+			onError: handler => {
+				return on(topics.HOTWORD_ERROR, handler)
 			}
 		},
 		asr: {
@@ -233,10 +254,11 @@ module.exports = (options) => {
 			onTextCaptured: handler => {
 				return on(topics.ASR_TEXT_CAPTURED, handler)
 			},
-			error: async (err) => {
+			error: async (err, context) => {
 				logger.error('ASR error:', err)
 				await publish(topics.ASR_ERROR, serialize({
-					error: err
+					error: err,
+					context
 				}))
 			},
 			onError: handler => {
@@ -278,10 +300,11 @@ module.exports = (options) => {
 			onIntentNotRecognized: handler => {
 				return on(topics.NLU_INTENT_NOT_RECOGNIZED, handler)
 			},
-			error: async (err) => {
+			error: async (err, context) => {
 				logger.error('NLU error:', err)
 				await publish('hermes/nlu/error', serialize({
-					error: err
+					error: err,
+					context
 				}))
 			},
 			onError: handler => {
@@ -324,10 +347,11 @@ module.exports = (options) => {
 					return true
 				}, timeout)
 			},
-			error: async (err) => {
+			error: async (err, context) => {
 				logger.error('TTS error:', err)
 				await publish(topics.TTS_ERROR, serialize({
-					error: err
+					error: err,
+					context
 				}))
 			},
 			onError: handler => {
@@ -421,11 +445,12 @@ module.exports = (options) => {
 			onStreamFinished: (siteId, handler) => {
 				return on(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), handler)
 			},
-			error: async (siteId, err) => {
+			error: async (siteId, err, context) => {
 				logger.error('Audio server error:', err)
 				await publish(topics.AUDIO_SERVER_ERROR, serialize({
 					siteId,
-					error: err
+					error: err,
+					context
 				}))
 			},
 			onError: handler => {
