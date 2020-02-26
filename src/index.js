@@ -245,10 +245,10 @@ module.exports = (options) => {
 			onStopListening: handler => {
 				return on(topics.ASR_STOP_LISTENING, handler)
 			},
-			textCaptured: async (siteId, sessionId, text, likelihood, seconds) => {
+			textCaptured: async (siteId, sessionId, text, likelihood, seconds, tokens) => {
 				logger.info('ASR captured text "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				await publish(topics.ASR_TEXT_CAPTURED, serialize({
-					siteId, sessionId, text, likelihood, seconds
+					siteId, sessionId, text, likelihood, seconds, tokens
 				}))
 			},
 			onTextCaptured: handler => {
@@ -322,7 +322,7 @@ module.exports = (options) => {
 			say: async (siteId, sessionId, id, text, lang, timeout) => {
 				logger.info('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				let p
-				if ( timeout ) p = hermes.tts.waitForSayFinished(siteId, sessionId, timeout)
+				if ( timeout ) p = hermes.tts.waitForSayFinished(sessionId, id, timeout)
 				client.publish(topics.TTS_SAY, serialize({
 					siteId, sessionId, id, text, lang
 				}))
@@ -331,19 +331,19 @@ module.exports = (options) => {
 			onSay: handler => {
 				return on(topics.TTS_SAY, handler)
 			},
-			sayFinished: async (siteId, sessionId) => {
-				logger.info('Text spoken for session "%s" on site "%s"', sessionId, siteId)
+			sayFinished: async (sessionId, id) => {
+				logger.info('Speak request "%s" for session "%s" finished playing', id, sessionId)
 				await publish(topics.TTS_SAY_FINISHED, serialize({
-					siteId, sessionId
+					sessionId, id
 				}))
 			},
 			onSayFinished: handler => {
 				return on(topics.TTS_SAY_FINISHED, handler)
 			},
-			waitForSayFinished: (siteId, sessionId, timeout) => {
+			waitForSayFinished: (sessionId, id, timeout) => {
 				return waitFor(topics.TTS_SAY_FINISHED, (topic, payload) => {
-					if ( payload.sessionId != sessionId ) return
-					logger.info('Speaking "%s" finished on site "%s"', sessionId, siteId)
+					if ( payload.id != id ) return
+					logger.info('Speaking "%s" for session "%s" finished', id, sessionId)
 					return true
 				}, timeout)
 			},
@@ -408,6 +408,7 @@ module.exports = (options) => {
 			},
 			playBytesStream: async (siteId, sessionId, id, chunk, index, isLastChunk, timeout) => {
 				id || (id = sessionId)
+				index = '' + index
 				isLastChunk = !!isLastChunk ? '1' : '0'
 				// let p
 				// if ( isLastChunk ) {
