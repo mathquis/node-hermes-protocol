@@ -93,7 +93,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_END_SESSION, handler)
 			},
 			sessionEnded: async (siteId, sessionId, customData, reason) => {
-				logger.info('Session "%s" ended on site "%s"', sessionId, siteId)
+				logger.info('Session "%s" ended on site "%s" because "%s"', sessionId, siteId, reason)
 				await publish(topics.DIALOGUE_SESSION_ENDED, serialize({
 					siteId, sessionId, customData, termination: {reason}
 				}))
