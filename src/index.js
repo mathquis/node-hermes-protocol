@@ -503,7 +503,7 @@ module.exports = (options) => {
 				.replace(/[+]/g, '[^\/]+') // One word
 				.replace(/[#]/g, '.*') // Any word
 		)
-		const listeners = handlers.get(topic) || []
+		const {listeners} = handlers.get(topic) || {listeners: []}
 		const wrapper = (t, message) => {
 			if ( !t.match(reg) ) return
 			const payload = unpack(message)
