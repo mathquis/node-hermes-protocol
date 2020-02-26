@@ -296,12 +296,12 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(topics.TTS_LOAD, handler)
 			},
-			say: async (siteId, sessionId, text, lang, timeout) => {
+			say: async (siteId, sessionId, id, text, lang, timeout) => {
 				logger.info('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				let p
 				if ( timeout ) p = hermes.tts.waitForSayFinished(siteId, sessionId, timeout)
 				client.publish(topics.TTS_SAY, serialize({
-					siteId, sessionId, text, lang
+					siteId, sessionId, id, text, lang
 				}))
 				await p
 			},
@@ -385,12 +385,12 @@ module.exports = (options) => {
 			playBytesStream: async (siteId, sessionId, id, chunk, index, isLastChunk, timeout) => {
 				id || (id = sessionId)
 				isLastChunk = !!isLastChunk ? '1' : '0'
-				let p
-				if ( isLastChunk ) {
-					const p = hermes.waitForStreamFinished(siteId, id, timeout)
-				}
+				// let p
+				// if ( isLastChunk ) {
+				// 	const p = hermes.audioServer.waitForStreamFinished(siteId, id, timeout)
+				// }
 				await publish(format(topics.AUDIO_SERVER_PLAY_BYTES_STREAM, {siteId, id, index, isLastChunk}), chunk)
-				await p
+				// await p
 			},
 			onPlayBytesStream: (siteId, handler) => {
 				const wrapper = (topic, payload) => {
@@ -419,9 +419,9 @@ module.exports = (options) => {
 				}))
 			},
 			onStreamFinished: (siteId, handler) => {
-				on(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), handler)
+				return on(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), handler)
 			},
-			error: async (err) => {
+			error: async (siteId, err) => {
 				logger.error('Audio server error:', err)
 				await publish(topics.AUDIO_SERVER_ERROR, serialize({
 					siteId,
