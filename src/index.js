@@ -92,6 +92,15 @@ module.exports = (options) => {
 			onEndSession: handler => {
 				return on(topics.DIALOGUE_END_SESSION, handler)
 			},
+			sessionQueued: async (siteId, sessionId, text, customData) => {
+				logger.info('Queued session "%s" on site "%s"', sessionId, siteId)
+				await publish(topics.DIALOGUE_SESSION_QUEUED, serialize({
+					siteId, sessionId, text, customData
+				}))
+			},
+			onSessionQueued: handler => {
+				return on(topics.DIALOGUE_SESSION_QUEUED, handler)
+			},
 			sessionEnded: async (siteId, sessionId, customData, reason) => {
 				logger.info('Session "%s" ended on site "%s" because "%s"', sessionId, siteId, reason)
 				await publish(topics.DIALOGUE_SESSION_ENDED, serialize({
@@ -251,7 +260,7 @@ module.exports = (options) => {
 			onQuery: handler => {
 				return on(topics.NLU_QUERY, handler)
 			},
-			intentParsed: async (id, intent, input, slots, sessionId) => {
+			intentParsed: async (sessionId, id, input, intent, slots) => {
 				logger.info('Request "%s" parsed intent "%s" parsed from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
 				await publish('hermes/nlu/intentParsed', serialize({
 					id, intent, input, slots, sessionId
@@ -260,7 +269,7 @@ module.exports = (options) => {
 			onIntentParsed: handler => {
 				return on(topics.NLU_INTENT_PARSED, handler)
 			},
-			intentNotRecognized: async (id, input, sessionId) => {
+			intentNotRecognized: async (sessionId, id, input) => {
 				logger.info('Request "%s" did not recognized intent for input "%s" for session "%s"', id, input, sessionId)
 				await publish('hermes/nlu/intentNotRecognized', serialize({
 					id, input, sessionId
@@ -308,10 +317,10 @@ module.exports = (options) => {
 			onSayFinished: handler => {
 				return on(topics.TTS_SAY_FINISHED, handler)
 			},
-			waitForSayFinished: (siteId, id, timeout) => {
+			waitForSayFinished: (siteId, sessionId, timeout) => {
 				return waitFor(topics.TTS_SAY_FINISHED, (topic, payload) => {
-					if ( payload.id != id ) return
-					logger.info('Speaking "%s" finished on site "%s"', id, siteId)
+					if ( payload.sessionId != sessionId ) return
+					logger.info('Speaking "%s" finished on site "%s"', sessionId, siteId)
 					return true
 				}, timeout)
 			},
