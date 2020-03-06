@@ -283,7 +283,7 @@ module.exports = (options) => {
 				return on(topics.NLU_QUERY, handler)
 			},
 			intentParsed: async (sessionId, id, input, intent, slots) => {
-				logger.info('Request "%s" parsed intent "%s" parsed from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
+				logger.info('Request "%s" recognized intent "%s" from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
 				await publish('hermes/nlu/intentParsed', serialize({
 					id, intent, input, slots, sessionId
 				}))
@@ -459,49 +459,59 @@ module.exports = (options) => {
 			}
 		},
 		injection: {
-			perform: async (id, crossLanguage, lexicon, operation, timeout) => {
-				logger.info('TODO: Performing injection')
+			perform: async (id, crossLanguage, lexicon, operations, timeout) => {
+				logger.info('Requesting injection operations')
 				let p
-				if ( timeout ) p = hermes.waitForInjectionComplete(id, timeout)
-				await publish('hermes/injection/perform', serialize({
-					id, crossLanguage, lexicon, operation
+				if ( timeout ) p = hermes.injection.waitForComplete(id, timeout)
+				await publish(topics.INJECTION_PERFORM, serialize({
+					id, crossLanguage, lexicon, operations
 				}))
 				await p
 			},
-			performComplete: async (requestId) => {
+			onPerform: handler => {
+				return on(topics.INJECTION_PERFORM, handler)
+			},
+			complete: async (requestId) => {
 				logger.info('Injection "%s" complete', requestId)
-				await publish('hermes/injection/complete', serialize({
+				await publish(topics.INJECTION_COMPLETE, serialize({
 					requestId
 				}))
 			},
-			waitForPerformComplete: (requestId, timeout) => {
+			onComplete: (handler) => {
+				return on(topics.INJECTION_COMPLETE, handler)
+			},
+			waitForComplete: (requestId, timeout) => {
 				logger.debug('Waiting for injection "%s" completed for %d ms', requestId, timeout)
-				return waitFor('hermes/injection/complete', (topic, message) => {
-					const payload = unserialize(message)
+				return waitFor(topics.INJECTION_COMPLETE, (topic, payload) => {
 					if ( payload.requestId != requestId ) return
 					logger.info('Injection "%s" complete', requestId, siteId)
 					return true
 				}, timeout)
 			},
-			reset: async (id, crossLanguage, lexicon, operation, timeout) => {
-				logger.info('TODO: Injection resetting')
+			reset: async (id, timeout) => {
+				logger.info('Requesting injection reset')
 				let p
-				if ( timeout ) p = hermes.waitForInjectionComplete(id, timeout)
-				await publish('hermes/injection/reset', serialize({
-					id, crossLanguage, lexicon, operation
+				if ( timeout ) p = hermes.injection.waitForResetComplete(id, timeout)
+				await publish(topics.INJECTION_RESET_PERFORM, serialize({
+					id
 				}))
 				await p
 			},
+			onReset: handler => {
+				return on(topics.INJECTION_RESET_PERFORM, handler)
+			},
 			resetComplete: async (requestId) => {
 				logger.info('Injection "%s" reset', requestId)
-				await publish('hermes/injection/reset/complete', serialize({
+				await publish(topics.INJECTION_RESET_COMPLETE, serialize({
 					requestId
 				}))
 			},
+			onResetComplete: handler => {
+				return on(topics.INJECTION_RESET_COMPLETE, handler)
+			},
 			waitForResetComplete: (requestId, timeout) => {
 				logger.debug('Waiting for injection "%s" completed for %d ms', requestId, timeout)
-				return waitFor('hermes/injection/reset/complete', (topic, message) => {
-					const payload = unserialize(message)
+				return waitFor(topics.INJECTION_RESET_COMPLETE, (topic, payload) => {
 					if ( payload.requestId != requestId ) return
 					logger.info('Injection "%s" reset', requestId, siteId)
 					return true
