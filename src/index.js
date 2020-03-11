@@ -18,22 +18,22 @@ module.exports = (options) => {
 			})
 		})
 		.on('reconnect', () => {
-			logger.info('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
+			logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
 		})
 		.on('close', () => {
 			logger.info('Disconnected from MQTT broker "%s"', MQTT_HOST)
 		})
 		.on('disconnect', packet => {
-			logger.info('Disconnecting from MQTT broker "%s"...', MQTT_HOST)
+			logger.debug('Disconnecting from MQTT broker "%s"...', MQTT_HOST)
 		})
 		.on('offline', () => {
-			logger.info('MQTT client is offline')
+			logger.debug('MQTT client is offline')
 		})
 		.on('error', err => {
-			onError(err)
+			logger.error(err.message)
 		})
 		.on('end', () => {
-			logger.info('Terminated connection to MQTT broker "%s"...', MQTT_HOST)
+			logger.info('Terminated connection to MQTT broker "%s"', MQTT_HOST)
 		})
 		.on('message', (t, m) => {
 			logger.debug('Received topic "%s"', t)
@@ -48,25 +48,44 @@ module.exports = (options) => {
 	const handlers = new Map()
 
 	const hermes = {
+		// Helpers
+		on, publish, format, waitFor, serialize, unserialize, noop,
+
+		// Dialogue
 		dialogue: {
 			load: async () => {
-				logger.info('Dialogue is loaded')
-				await client.publish(topics.DIALOGUE_LOAD, serialize({}))
+				logger.debug('Dialogue is loaded')
+				await publish(topics.DIALOGUE_LOAD, serialize({}))
 			},
 			onLoad: handler => {
 				return on(topics.DIALOGUE_LOAD, handler)
 			},
 			startSession: async (siteId, init, customData) => {
-				logger.info('Starting session on site "%s"', siteId)
+				logger.debug('Starting session on site "%s"', siteId)
 				await publish(topics.DIALOGUE_START_SESSION, serialize({
 					siteId, init, customData
+				}))
+			},
+			startActionSession: async (siteId, text, canBeQueued, intentFilter, sendIntentNotRecognized) => {
+				logger.debug('Starting session on site "%s"', siteId)
+				await publish(topics.DIALOGUE_START_SESSION, serialize({
+					siteId, init: {
+						type: 'action',
+						text, canBeQueued, intentFilter, sendIntentNotRecognized
+					}, customData
+				}))
+			},
+			startNotificationSession: async (siteId, text, customData) => {
+				logger.debug('Starting session on site "%s"', siteId)
+				await publish(topics.DIALOGUE_START_SESSION, serialize({
+					siteId, init: {type: 'notification', text}, customData
 				}))
 			},
 			onStartSession: handler => {
 				return on(topics.DIALOGUE_START_SESSION, handler)
 			},
 			sessionStarted: async (siteId, sessionId, customData) => {
-				logger.info('Session "%s" started on site "%s"', sessionId, siteId)
+				logger.debug('Session "%s" started on site "%s"', sessionId, siteId)
 				await publish(topics.DIALOGUE_SESSION_STARTED, serialize({
 					siteId, sessionId, customData
 				}))
@@ -75,7 +94,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_SESSION_STARTED, handler)
 			},
 			continueSession: async (siteId, sessionId, text, customData, intentFilter, sendIntentNotRecognized, slot) => {
-				logger.info('Continuing session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Continuing session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.DIALOGUE_CONTINUE_SESSION, serialize({
 					siteId, sessionId, text, customData, intentFilter, sendIntentNotRecognized, slot
 				}))
@@ -84,7 +103,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_CONTINUE_SESSION, handler)
 			},
 			endSession: async (siteId, sessionId, text, customData) => {
-				logger.info('Ending session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Ending session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.DIALOGUE_END_SESSION, serialize({
 					siteId, sessionId, text, customData
 				}))
@@ -93,7 +112,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_END_SESSION, handler)
 			},
 			sessionQueued: async (siteId, sessionId, text, customData) => {
-				logger.info('Queued session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Queued session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.DIALOGUE_SESSION_QUEUED, serialize({
 					siteId, sessionId, text, customData
 				}))
@@ -102,7 +121,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_SESSION_QUEUED, handler)
 			},
 			sessionEnded: async (siteId, sessionId, customData, reason) => {
-				logger.info('Session "%s" ended on site "%s" because "%s"', sessionId, siteId, reason)
+				logger.debug('Session "%s" ended on site "%s" because "%s"', sessionId, siteId, reason)
 				await publish(topics.DIALOGUE_SESSION_ENDED, serialize({
 					siteId, sessionId, customData, termination: {reason}
 				}))
@@ -111,7 +130,7 @@ module.exports = (options) => {
 				return on(topics.DIALOGUE_SESSION_ENDED, handler)
 			},
 			intent: async (siteId, sessionId, input, intent, slots, asrTokens, asrConfidence, alternatives, customData) => {
-				logger.info('Recognized intent "%s" for session "%s" on site "%s"', intent.intentName, sessionId, siteId)
+				logger.debug('Recognized intent "%s" for session "%s" on site "%s"', intent.intentName, sessionId, siteId)
 				await publish('hermes/intent/' + intent.intentName, serialize({
 					siteId, sessionId, input, intent, slots, asrTokens, asrConfidence, alternatives, customData
 				}))
@@ -120,7 +139,7 @@ module.exports = (options) => {
 				return on(format(topics.DIALOGUE_INTENT, {intentName}), handler)
 			},
 			intentNotRecognized: async (siteId, sessionId, input, customData) => {
-				logger.info('Intent not recognized for session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Intent not recognized for session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.DIALOGUE_INTENT_NOT_RECOGNIZED, serialize({
 					siteId, sessionId, input, customData
 				}))
@@ -142,7 +161,7 @@ module.exports = (options) => {
 		feedback: {
 			sound: {
 				toggleOn: async (siteId) => {
-					logger.info('Toggling feedback sound "On" on site "%s"', siteId)
+					logger.debug('Toggling feedback sound "On" on site "%s"', siteId)
 					await publish(topics.FEEDBACK_SOUND_TOGGLE_ON, serialize({
 						siteId
 					}))
@@ -151,7 +170,7 @@ module.exports = (options) => {
 					return on(topics.FEEDBACK_SOUND_TOGGLE_ON,  handler)
 				},
 				toggleOff: async (siteId) => {
-					logger.info('Toggling feedback sound "Off" on site "%s"', siteId)
+					logger.debug('Toggling feedback sound "Off" on site "%s"', siteId)
 					await publish(topics.FEEDBACK_SOUND_TOGGLE_OFF, serialize({
 						siteId
 					}))
@@ -163,11 +182,11 @@ module.exports = (options) => {
 		},
 		hotword: {
 			load: async (siteId) => {
-				logger.info('Hotword is loaded on site "%s"', siteId)
-				await client.publish(topics.HOTWORD_LOAD, serialize({siteId}))
+				logger.debug('Hotword is loaded on site "%s"', siteId)
+				await publish(topics.HOTWORD_LOAD, serialize({siteId}))
 			},
 			toggleOn: async (siteId, sessionId) => {
-				logger.info('Toggling hotword "On" on site "%s"', siteId)
+				logger.debug('Toggling hotword "On" on site "%s"', siteId)
 				await publish(topics.HOTWORD_TOGGLE_ON, serialize({
 					siteId, sessionId
 				}))
@@ -176,7 +195,7 @@ module.exports = (options) => {
 				return on(topics.HOTWORD_TOGGLE_ON, handler)
 			},
 			toggleOff: async (siteId, sessionId) => {
-				logger.info('Toggling hotword "Off" on site "%s"', siteId)
+				logger.debug('Toggling hotword "Off" on site "%s"', siteId)
 				await publish(topics.HOTWORD_TOGGLE_OFF, serialize({
 					siteId, sessionId
 				}))
@@ -185,7 +204,7 @@ module.exports = (options) => {
 				return on(topics.HOTWORD_TOGGLE_OFF, handler)
 			},
 			detected: async (siteId, modelId, modelVersion, modelType, currentSensitivity) => {
-				logger.info('Hotword "%s" detected on site "%s"', modelId, siteId)
+				logger.debug('Hotword "%s" detected on site "%s"', modelId, siteId)
 				await publish(format(topics.HOTWORD_DETECTED, {modelId}), serialize({
 					siteId, modelId, modelVersion, modelType, currentSensitivity
 				}))
@@ -207,28 +226,28 @@ module.exports = (options) => {
 		},
 		asr: {
 			load: async () => {
-				logger.info('ASR is loaded')
-				await client.publish(topics.ASR_LOAD, serialize({}))
+				logger.debug('ASR is loaded')
+				await publish(topics.ASR_LOAD, serialize({}))
 			},
 			onLoad: handler => {
 				return on(topics.ASR_LOAD, handler)
 			},
 			toggleOn: async (siteId, sessionId) => {
-				logger.info('Toggling ASR "On" on site "%s"', siteId)
+				logger.debug('Toggling ASR "On" on site "%s"', siteId)
 				await publish(topics.ASR_TOGGLE_ON)
 			},
 			onToggleOn: handler => {
 				return on(topics.ASR_TOGGLE_ON, handler)
 			},
 			toggleOff: async (siteId, sessionId) => {
-				logger.info('Toggling ASR "Off" on site "%s"', siteId)
+				logger.debug('Toggling ASR "Off" on site "%s"', siteId)
 				await publish(topics.ASR_TOGGLE_OFF)
 			},
 			onToggleOff: handler => {
 				return on(topics.ASR_TOGGLE_OFF, handler)
 			},
 			startListening: async (siteId, sessionId) => {
-				logger.info('Start listening ASR for session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Start listening ASR for session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.ASR_START_LISTENING, serialize({
 					siteId, sessionId
 				}))
@@ -237,7 +256,7 @@ module.exports = (options) => {
 				return on(topics.ASR_START_LISTENING, handler)
 			},
 			stopListening: async (siteId, sessionId) => {
-				logger.info('Stop listening ASR for session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Stop listening ASR for session "%s" on site "%s"', sessionId, siteId)
 				await publish(topics.ASR_STOP_LISTENING, serialize({
 					siteId, sessionId
 				}))
@@ -246,7 +265,7 @@ module.exports = (options) => {
 				return on(topics.ASR_STOP_LISTENING, handler)
 			},
 			textCaptured: async (siteId, sessionId, text, likelihood, seconds, tokens) => {
-				logger.info('ASR captured text "%s" for session "%s" on site "%s"', text, sessionId, siteId)
+				logger.debug('ASR captured text "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				await publish(topics.ASR_TEXT_CAPTURED, serialize({
 					siteId, sessionId, text, likelihood, seconds, tokens
 				}))
@@ -267,14 +286,14 @@ module.exports = (options) => {
 		},
 		nlu: {
 			load: async () => {
-				logger.info('NLU is loaded')
-				await client.publish(topics.NLU_LOAD, serialize({}))
+				logger.debug('NLU is loaded')
+				await publish(topics.NLU_LOAD, serialize({}))
 			},
 			onLoad: handler => {
 				return on(topics.NLU_LOAD, handler)
 			},
 			query: async (sessionId, input, intentFilter, id) => {
-				logger.info('Querying NLU with "%s" for session "%s"', input, sessionId)
+				logger.debug('Querying NLU with "%s" for session "%s"', input, sessionId)
 				await publish(topics.NLU_QUERY, serialize({
 					sessionId, input, intentFilter, id
 				}))
@@ -283,7 +302,7 @@ module.exports = (options) => {
 				return on(topics.NLU_QUERY, handler)
 			},
 			intentParsed: async (sessionId, id, input, intent, slots) => {
-				logger.info('Request "%s" recognized intent "%s" from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
+				logger.debug('Request "%s" recognized intent "%s" from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
 				await publish('hermes/nlu/intentParsed', serialize({
 					id, intent, input, slots, sessionId
 				}))
@@ -292,7 +311,7 @@ module.exports = (options) => {
 				return on(topics.NLU_INTENT_PARSED, handler)
 			},
 			intentNotRecognized: async (sessionId, id, input) => {
-				logger.info('Request "%s" did not recognized intent for input "%s" for session "%s"', id, input, sessionId)
+				logger.debug('Request "%s" did not recognized intent for input "%s" for session "%s"', id, input, sessionId)
 				await publish('hermes/nlu/intentNotRecognized', serialize({
 					id, input, sessionId
 				}))
@@ -313,17 +332,17 @@ module.exports = (options) => {
 		},
 		tts: {
 			load: async () => {
-				logger.info('TTS is loaded')
-				await client.publish(topics.TTS_LOAD, serialize({}))
+				logger.debug('TTS is loaded')
+				await publish(topics.TTS_LOAD, serialize({}))
 			},
 			onLoad: handler => {
 				return on(topics.TTS_LOAD, handler)
 			},
 			say: async (siteId, sessionId, id, text, lang, timeout) => {
-				logger.info('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
+				logger.debug('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				let p
 				if ( timeout ) p = hermes.tts.waitForSayFinished(sessionId, id, timeout)
-				client.publish(topics.TTS_SAY, serialize({
+				publish(topics.TTS_SAY, serialize({
 					siteId, sessionId, id, text, lang
 				}))
 				await p
@@ -332,7 +351,7 @@ module.exports = (options) => {
 				return on(topics.TTS_SAY, handler)
 			},
 			sayFinished: async (sessionId, id) => {
-				logger.info('Speak request "%s" for session "%s" finished playing', id, sessionId)
+				logger.debug('Speak request "%s" for session "%s" finished playing', id, sessionId)
 				await publish(topics.TTS_SAY_FINISHED, serialize({
 					sessionId, id
 				}))
@@ -343,7 +362,7 @@ module.exports = (options) => {
 			waitForSayFinished: (sessionId, id, timeout) => {
 				return waitFor(topics.TTS_SAY_FINISHED, (topic, payload) => {
 					if ( payload.id != id ) return
-					logger.info('Speaking "%s" for session "%s" finished', id, sessionId)
+					logger.debug('Speaking "%s" for session "%s" finished', id, sessionId)
 					return true
 				}, timeout)
 			},
@@ -360,8 +379,8 @@ module.exports = (options) => {
 		},
 		audioServer: {
 			load: async (siteId) => {
-				logger.info('Audio server is loaded')
-				await client.publish(topics.AUDIO_SERVER_LOAD, serialize({siteId}))
+				logger.debug('Audio server is loaded')
+				await publish(topics.AUDIO_SERVER_LOAD, serialize({siteId}))
 			},
 			audioFrame: async (siteId, chunk) => {
 				logger.debug('Audio %d bytes frame on site "%s"', chunk.length, siteId)
@@ -393,12 +412,12 @@ module.exports = (options) => {
 				logger.debug('Waiting for play "%s" finished on site "%s" for %d ms', id, siteId, timeout)
 				return waitFor(format(topics.AUDIO_SERVER_PLAY_FINISHED, {siteId, id}), (topic, payload) => {
 					if ( payload.id != id ) return
-					logger.info('Playing "%s" finished on site "%s"', id, siteId)
+					logger.debug('Playing "%s" finished on site "%s"', id, siteId)
 					return true
 				}, timeout)
 			},
 			playFinished: async (siteId, id) => {
-				logger.info('Playing "%s" finished on site "%s"', id, siteId)
+				logger.debug('Playing "%s" finished on site "%s"', id, siteId)
 				await publish(format(topics.AUDIO_SERVER_PLAY_FINISHED, {siteId}), serialize({
 					id, siteId
 				}))
@@ -433,12 +452,12 @@ module.exports = (options) => {
 				logger.debug('Waiting for stream "%s" finished on site "%s" for %d ms', id, siteId, timeout)
 				return waitFor(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), (topic, payload) => {
 					if ( payload.id != id ) return
-					logger.info('Streaming "%s" finished on site "%s"', id, siteId)
+					logger.debug('Streaming "%s" finished on site "%s"', id, siteId)
 					return true
 				}, timeout)
 			},
 			streamFinished: async (siteId, id) => {
-				logger.info('Streaming "%s" finished on site "%s"', id, siteId)
+				logger.debug('Streaming "%s" finished on site "%s"', id, siteId)
 				await publish(format(topics.AUDIO_SERVER_STREAM_FINISHED, {siteId}), serialize({
 					id, siteId
 				}))
@@ -460,7 +479,7 @@ module.exports = (options) => {
 		},
 		injection: {
 			perform: async (id, crossLanguage, lexicon, operations, timeout) => {
-				logger.info('Requesting injection operations')
+				logger.debug('Requesting injection operations')
 				let p
 				if ( timeout ) p = hermes.injection.waitForComplete(id, timeout)
 				await publish(topics.INJECTION_PERFORM, serialize({
@@ -472,7 +491,7 @@ module.exports = (options) => {
 				return on(topics.INJECTION_PERFORM, handler)
 			},
 			complete: async (requestId) => {
-				logger.info('Injection "%s" complete', requestId)
+				logger.debug('Injection "%s" complete', requestId)
 				await publish(topics.INJECTION_COMPLETE, serialize({
 					requestId
 				}))
@@ -484,12 +503,12 @@ module.exports = (options) => {
 				logger.debug('Waiting for injection "%s" completed for %d ms', requestId, timeout)
 				return waitFor(topics.INJECTION_COMPLETE, (topic, payload) => {
 					if ( payload.requestId != requestId ) return
-					logger.info('Injection "%s" complete', requestId, siteId)
+					logger.debug('Injection "%s" complete', requestId)
 					return true
 				}, timeout)
 			},
 			reset: async (id, timeout) => {
-				logger.info('Requesting injection reset')
+				logger.debug('Requesting injection reset')
 				let p
 				if ( timeout ) p = hermes.injection.waitForResetComplete(id, timeout)
 				await publish(topics.INJECTION_RESET_PERFORM, serialize({
@@ -501,7 +520,7 @@ module.exports = (options) => {
 				return on(topics.INJECTION_RESET_PERFORM, handler)
 			},
 			resetComplete: async (requestId) => {
-				logger.info('Injection "%s" reset', requestId)
+				logger.debug('Injection "%s" reset', requestId)
 				await publish(topics.INJECTION_RESET_COMPLETE, serialize({
 					requestId
 				}))
@@ -513,7 +532,7 @@ module.exports = (options) => {
 				logger.debug('Waiting for injection "%s" completed for %d ms', requestId, timeout)
 				return waitFor(topics.INJECTION_RESET_COMPLETE, (topic, payload) => {
 					if ( payload.requestId != requestId ) return
-					logger.info('Injection "%s" reset', requestId, siteId)
+					logger.debug('Injection "%s" reset', requestId, siteId)
 					return true
 				}, timeout)
 			}
@@ -576,7 +595,7 @@ module.exports = (options) => {
 				if ( !waitHandler(topic, payload) ) return
 				clearTimeout(listener.timeout)
 				listener.remove()
-				resolve()
+				resolve(listener)
 			})
 			listener.timeout = setTimeout(() => {
 				listener.remove()
