@@ -1,4 +1,5 @@
 const MQTT		= require('mqtt')
+const UUID 		= require('uuid/v4')
 const topics	= require('./topics')
 
 module.exports = (options) => {
@@ -47,12 +48,19 @@ module.exports = (options) => {
 
 	const handlers = new Map()
 
+	const DialogInitTypes = {
+		ACTION: 'action',
+		NOTIFICATION: 'notification'
+	}
+
 	const hermes = {
+
 		// Helpers
 		on, publish, format, waitFor, serialize, unserialize, noop,
 
 		// Dialogue
 		dialogue: {
+			types: DialogInitTypes,
 			load: async () => {
 				logger.debug('Dialogue is loaded')
 				await publish(topics.DIALOGUE_LOAD, serialize({}))
@@ -70,7 +78,7 @@ module.exports = (options) => {
 				logger.debug('Starting session on site "%s"', siteId)
 				await publish(topics.DIALOGUE_START_SESSION, serialize({
 					siteId, init: {
-						type: 'action',
+						type: DialogInitTypes.ACTION,
 						text, canBeQueued, intentFilter, sendIntentNotRecognized
 					}, customData
 				}))
@@ -78,7 +86,10 @@ module.exports = (options) => {
 			startNotificationSession: async (siteId, text, customData) => {
 				logger.debug('Starting session on site "%s"', siteId)
 				await publish(topics.DIALOGUE_START_SESSION, serialize({
-					siteId, init: {type: 'notification', text}, customData
+					siteId, init: {
+						type: DialogInitTypes.NOTIFICATION,
+						text
+					}, customData
 				}))
 			},
 			onStartSession: handler => {
@@ -292,7 +303,8 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(topics.NLU_LOAD, handler)
 			},
-			query: async (sessionId, input, intentFilter, id) => {
+			query: async (sessionId, input, intentFilter) => {
+				id = UUID()
 				logger.debug('Querying NLU with "%s" for session "%s"', input, sessionId)
 				await publish(topics.NLU_QUERY, serialize({
 					sessionId, input, intentFilter, id
@@ -338,7 +350,8 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(topics.TTS_LOAD, handler)
 			},
-			say: async (siteId, sessionId, id, text, lang, timeout) => {
+			say: async (siteId, sessionId, text, lang, timeout) => {
+				id = UUID()
 				logger.debug('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
 				let p
 				if ( timeout ) p = hermes.tts.waitForSayFinished(sessionId, id, timeout)
@@ -360,6 +373,7 @@ module.exports = (options) => {
 				return on(topics.TTS_SAY_FINISHED, handler)
 			},
 			waitForSayFinished: (sessionId, id, timeout) => {
+				id = UUID()
 				return waitFor(topics.TTS_SAY_FINISHED, (topic, payload) => {
 					if ( payload.id != id ) return
 					logger.debug('Speaking "%s" for session "%s" finished', id, sessionId)
@@ -390,8 +404,8 @@ module.exports = (options) => {
 				logger.debug('Listening for audio frames on site "%s"', siteId)
 				return on(format(topics.AUDIO_SERVER_AUDIO_FRAME, {siteId}), handler, noop)
 			},
-			playBytes: async (siteId, sessionId, id, bytes, timeout) => {
-				id || (id = sessionId)
+			playBytes: async (siteId, sessionId, bytes, timeout) => {
+				id = UUID()
 				logger.debug('Playing %d bytes for request "%s" on site "%s"', bytes.length, id, siteId)
 				let p
 				if ( timeout ) p = hermes.audioServer.waitForPlayFinished(siteId, id, timeout)
@@ -478,8 +492,9 @@ module.exports = (options) => {
 			}
 		},
 		injection: {
-			perform: async (id, crossLanguage, lexicon, operations, timeout) => {
-				logger.debug('Requesting injection operations')
+			perform: async (crossLanguage, lexicon, operations, timeout) => {
+				id = UUID()
+				logger.debug('Requesting injection "%s" operations', id)
 				let p
 				if ( timeout ) p = hermes.injection.waitForComplete(id, timeout)
 				await publish(topics.INJECTION_PERFORM, serialize({
@@ -507,8 +522,9 @@ module.exports = (options) => {
 					return true
 				}, timeout)
 			},
-			reset: async (id, timeout) => {
-				logger.debug('Requesting injection reset')
+			reset: async (timeout) => {
+				id = UUID()
+				logger.debug('Requesting injection "%s" reset', id)
 				let p
 				if ( timeout ) p = hermes.injection.waitForResetComplete(id, timeout)
 				await publish(topics.INJECTION_RESET_PERFORM, serialize({

@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/mathquis/node-hermes-protocol#readme",
   "dependencies": {
-    "mqtt": "^3.0.0"
+    "mqtt": "^3.0.0",
+    "uuid": "^7.0.2"
   }
 }
