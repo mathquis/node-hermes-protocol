@@ -1,5 +1,5 @@
 const MQTT		= require('mqtt')
-const UUID 		= require('uuid/v4')
+const UUID 		= require('uuid').v4
 const topics	= require('./topics')
 
 module.exports = (options) => {
@@ -74,7 +74,7 @@ module.exports = (options) => {
 					siteId, init, customData
 				}))
 			},
-			startActionSession: async (siteId, text, canBeQueued, intentFilter, sendIntentNotRecognized) => {
+			startActionSession: async (siteId, text, canBeQueued, intentFilter, sendIntentNotRecognized, customData) => {
 				logger.debug('Starting session on site "%s"', siteId)
 				await publish(topics.DIALOGUE_START_SESSION, serialize({
 					siteId, init: {
@@ -267,7 +267,7 @@ module.exports = (options) => {
 				return on(topics.ASR_START_LISTENING, handler)
 			},
 			stopListening: async (siteId, sessionId) => {
-				logger.debug('Stop listening ASR for session "%s" on site "%s"', sessionId, siteId)
+				logger.debug('Stop listening ASR for session "%s" on site "%s"', sessionId || '<none>', siteId)
 				await publish(topics.ASR_STOP_LISTENING, serialize({
 					siteId, sessionId
 				}))
@@ -373,7 +373,6 @@ module.exports = (options) => {
 				return on(topics.TTS_SAY_FINISHED, handler)
 			},
 			waitForSayFinished: (sessionId, id, timeout) => {
-				id = UUID()
 				return waitFor(topics.TTS_SAY_FINISHED, (topic, payload) => {
 					if ( payload.id != id ) return
 					logger.debug('Speaking "%s" for session "%s" finished', id, sessionId)

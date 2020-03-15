@@ -1,6 +1,6 @@
 {
   "name": "@mathquis/node-hermes-protocol",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Hermes protocol for Node.js using agnostic client (MQTT, Websocket, etc.)",
   "main": "src/index.js",
   "scripts": {
