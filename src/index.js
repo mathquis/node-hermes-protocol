@@ -140,10 +140,12 @@ module.exports = (options) => {
 			onSessionEnded: handler => {
 				return on(topics.DIALOGUE_SESSION_ENDED, handler)
 			},
-			intent: async (siteId, sessionId, input, intent, slots, asrTokens, asrConfidence, alternatives, customData) => {
-				logger.debug('Recognized intent "%s" for session "%s" on site "%s"', intent.intentName, sessionId, siteId)
-				await publish('hermes/intent/' + intent.intentName, serialize({
-					siteId, sessionId, input, intent, slots, asrTokens, asrConfidence, alternatives, customData
+			intent: async (siteId, sessionId, input, intentName, confidenceScore, slots, asrTokens, asrConfidence, alternatives, customData) => {
+				logger.debug('Recognized intent "%s" for session "%s" on site "%s" with confidence %f', intentName, sessionId, siteId, confidenceScore)
+				await publish('hermes/intent/' + intentName, serialize({
+					siteId, sessionId, input, intent: {
+						intentName, confidenceScore
+					}, slots, asrTokens, asrConfidence, alternatives, customData
 				}))
 			},
 			onIntent: (intentName, handler) => {
@@ -313,10 +315,12 @@ module.exports = (options) => {
 			onQuery: handler => {
 				return on(topics.NLU_QUERY, handler)
 			},
-			intentParsed: async (sessionId, id, input, intent, slots) => {
-				logger.debug('Request "%s" recognized intent "%s" from input "%s" for session "%s"', id, intent.intentName, input, sessionId)
+			intentParsed: async (sessionId, id, input, intentName, confidenceScore, slots) => {
+				logger.debug('Request "%s" recognized intent "%s" from input "%s" for session "%s" with confidence %f', id, intentName, input, sessionId, confidenceScore)
 				await publish('hermes/nlu/intentParsed', serialize({
-					id, intent, input, slots, sessionId
+					id, input, intent: {
+						intentName, confidenceScore
+					}, slots, sessionId
 				}))
 			},
 			onIntentParsed: handler => {
@@ -493,7 +497,7 @@ module.exports = (options) => {
 		injection: {
 			perform: async (crossLanguage, lexicon, operations, timeout) => {
 				id = UUID()
-				logger.debug('Requesting injection "%s" operations', id)
+				logger.debug('Requesting injection "%s" with %d operations', id, operations.length)
 				let p
 				if ( timeout ) p = hermes.injection.waitForComplete(id, timeout)
 				await publish(topics.INJECTION_PERFORM, serialize({
@@ -584,10 +588,13 @@ module.exports = (options) => {
 		wrapper.remove = () => {
 			const pos = listeners.indexOf(wrapper)
 			listeners.splice(pos, 1)
-			handlers.set(topic, {reg, listeners})
 			if ( listeners.length === 0 ) {
+				handlers.delete(topic)
 				client.unsubscribe(topic)
+				logger.debug('Unsubscribed from topic "%s"', topic)
+				return
 			}
+			handlers.set(topic, {reg, listeners})
 		}
 		listeners.push(wrapper)
 		handlers.set(topic, {reg, listeners})
@@ -616,7 +623,7 @@ module.exports = (options) => {
 			})
 			listener.timeout = setTimeout(() => {
 				listener.remove()
-				reject(new Error('Wait timeout'))
+				reject(new Error('Wait timeout for topic "' + waitTopic + '"'))
 			}, timeout || 30000)
 		})
 	}
