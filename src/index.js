@@ -5,46 +5,9 @@ const topics	= require('./topics')
 module.exports = (options) => {
 	options || (options = {})
 
-	const MQTT_HOST = options.host || 'mqtt://localhost:1883'
-
 	const logger = options.logger || console
 
-	const client = MQTT.connect( MQTT_HOST, options )
-
-	client
-		.on('connect', () => {
-			logger.info('Connected to MQTT broker "%s"', MQTT_HOST)
-			handlers.forEach((handler, topic) => {
-				client.subscribe(topic)
-			})
-		})
-		.on('reconnect', () => {
-			logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
-		})
-		.on('close', () => {
-			logger.info('Disconnected from MQTT broker "%s"', MQTT_HOST)
-		})
-		.on('disconnect', packet => {
-			logger.debug('Disconnecting from MQTT broker "%s"...', MQTT_HOST)
-		})
-		.on('offline', () => {
-			logger.debug('MQTT client is offline')
-		})
-		.on('error', err => {
-			logger.error(err.message)
-		})
-		.on('end', () => {
-			logger.info('Terminated connection to MQTT broker "%s"', MQTT_HOST)
-		})
-		.on('message', (t, m) => {
-			logger.debug('Received topic "%s"', t)
-			handlers.forEach((handler, topic) => {
-				let match
-				if ( match = t.match(handler.reg) ) {
-					handler.listeners.forEach(listener => listener(t, m))
-				}
-			})
-		})
+	let client
 
 	const handlers = new Map()
 
@@ -54,6 +17,57 @@ module.exports = (options) => {
 	}
 
 	const hermes = {
+
+		connect: (connectOptions) => {
+			if ( client ) return
+
+			const MQTT_HOST = connectOptions.host || 'mqtt://localhost:1883'
+
+			client = MQTT.connect( MQTT_HOST, {
+				...options,
+				...connectOptions
+			})
+
+			client
+				.on('connect', () => {
+					logger.info('Connected to MQTT broker "%s"', MQTT_HOST)
+					handlers.forEach((handler, topic) => {
+						logger.debug('Subscribing to "%s"', topic)
+						client.subscribe(topic)
+					})
+				})
+				.on('reconnect', () => {
+					logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
+				})
+				.on('close', () => {
+					logger.info('Disconnected from MQTT broker "%s"', MQTT_HOST)
+				})
+				.on('disconnect', packet => {
+					logger.debug('Disconnecting from MQTT broker "%s"...', MQTT_HOST)
+				})
+				.on('offline', () => {
+					logger.debug('MQTT client is offline')
+				})
+				.on('error', err => {
+					logger.error(err.message)
+				})
+				.on('end', () => {
+					logger.info('Terminated connection to MQTT broker "%s"', MQTT_HOST)
+				})
+				.on('message', (t, m) => {
+					logger.debug('Received topic "%s"', t)
+					handlers.forEach((handler, topic) => {
+						let match
+						if ( match = t.match(handler.reg) ) {
+							handler.listeners.forEach(listener => listener(t, m))
+						}
+					})
+				})
+		},
+
+		disconnect: () => {
+
+		},
 
 		// Helpers
 		on, publish, format, waitFor, serialize, unserialize, noop,
@@ -598,6 +612,7 @@ module.exports = (options) => {
 		}
 		listeners.push(wrapper)
 		handlers.set(topic, {reg, listeners})
+		logger.debug('Subscribing to topic "%s"', topic)
 		client.subscribe(topic)
 		return wrapper
 	}
