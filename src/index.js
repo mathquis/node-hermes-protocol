@@ -604,7 +604,7 @@ module.exports = (options) => {
 			listeners.splice(pos, 1)
 			if ( listeners.length === 0 ) {
 				handlers.delete(topic)
-				client.unsubscribe(topic)
+				if ( client ) client.unsubscribe(topic)
 				logger.debug('Unsubscribed from topic "%s"', topic)
 				return
 			}
@@ -612,14 +612,17 @@ module.exports = (options) => {
 		}
 		listeners.push(wrapper)
 		handlers.set(topic, {reg, listeners})
-		logger.debug('Subscribing to topic "%s"', topic)
-		client.subscribe(topic)
+		if ( client ) client.subscribe(topic)
 		return wrapper
 	}
 
 	async function publish(topic, message) {
-		logger.debug('Publishing topic "%s"', topic)
-		await client.publish(topic, message)
+		if ( client ) {
+			logger.debug('Publishing topic "%s"', topic)
+			await client.publish(topic, message)
+		} else {
+			logger.warn('Protocol is not started yet')
+		}
 	}
 
 	function format(str, obj) {
