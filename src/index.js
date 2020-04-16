@@ -10,6 +10,7 @@ module.exports = (options) => {
 	let client
 
 	const handlers = new Map()
+	const queue = []
 
 	const DialogInitTypes = {
 		ACTION: 'action',
@@ -35,6 +36,15 @@ module.exports = (options) => {
 						logger.debug('Subscribing to "%s"', topic)
 						client.subscribe(topic)
 					})
+					// Publish queue messages
+					if ( queue.length > 0 ) {
+						logger.debug('Processing %d queued messages', queue.length)
+						let queuedItem
+						while ( queuedItem = queue.shift() ) {
+							const {topic, message} = queuedItem
+							publish(topic, message)
+						}
+					}
 				})
 				.on('reconnect', () => {
 					logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
@@ -621,7 +631,8 @@ module.exports = (options) => {
 			logger.debug('Publishing topic "%s"', topic)
 			await client.publish(topic, message)
 		} else {
-			logger.warn('Protocol is not started yet')
+			queue.push({topic, message})
+			logger.debug('Queue has %d messages', queue.length)
 		}
 	}
 
