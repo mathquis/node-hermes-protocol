@@ -5,17 +5,17 @@ const topics	= require('./topics')
 module.exports = (options) => {
 	options || (options = {})
 
-	const logger = options.logger || console
-
-	let client
-
-	const handlers = new Map()
-	const queue = []
+	const handlers	= new Map()
+	const queue		= []
+	const logger	= options.logger || console
+	const queueSize	= options.queueSize || 100
 
 	const DialogInitTypes = {
 		ACTION: 'action',
 		NOTIFICATION: 'notification'
 	}
+
+	let client
 
 	const hermes = {
 
@@ -627,11 +627,15 @@ module.exports = (options) => {
 	}
 
 	async function publish(topic, message) {
-		if ( client ) {
+		if ( client && client.connected ) {
 			logger.debug('Publishing topic "%s"', topic)
 			await client.publish(topic, message)
 		} else {
 			queue.push({topic, message})
+			if( queue.length > queueSize ) {
+				logger.debug('Queue is full')
+				queue.shift()
+			}
 			logger.debug('Queue has %d messages', queue.length)
 		}
 	}
