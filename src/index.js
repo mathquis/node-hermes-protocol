@@ -8,11 +8,16 @@ module.exports = (options) => {
 	const handlers	= new Map()
 	const queue		= []
 	const logger	= options.logger || console
-	const queueSize	= options.queueSize || 100
+	const queueSize	= options.queueSize || 0
 
 	const DialogInitTypes = {
 		ACTION: 'action',
 		NOTIFICATION: 'notification'
+	}
+
+	const InjectionTypes = {
+		ADD: 'add',
+		ADD_FROM_VANILLA: 'addFromVanilla'
 	}
 
 	let client
@@ -76,11 +81,12 @@ module.exports = (options) => {
 		},
 
 		disconnect: () => {
-
+			logger.debug('Disconnecting...')
+			if ( client ) client.end()
 		},
 
 		// Helpers
-		on, publish, format, waitFor, serialize, unserialize, noop,
+		on, publish, format, waitFor, waitForEither, serialize, unserialize, noop,
 
 		// Dialogue
 		dialogue: {
@@ -136,6 +142,15 @@ module.exports = (options) => {
 			},
 			onContinueSession: handler => {
 				return on(topics.DIALOGUE_CONTINUE_SESSION, handler)
+			},
+			sessionContinued: async (siteId, sessionId, customData) => {
+				logger.debug('Session "%s" continued on site "%s"', sessionId, siteId)
+				await publish(topics.DIALOGUE_SESSION_CONTINUED, serialize({
+					siteId, sessionId, customData
+				}))
+			},
+			onSessionContinued: handler => {
+				return on(topics.DIALOGUE_SESSION_CONTINUED, handler)
 			},
 			endSession: async (siteId, sessionId, text, customData) => {
 				logger.debug('Ending session "%s" on site "%s"', sessionId, siteId)
@@ -519,6 +534,7 @@ module.exports = (options) => {
 			}
 		},
 		injection: {
+			types: InjectionTypes,
 			perform: async (crossLanguage, lexicon, operations, timeout) => {
 				id = UUID()
 				logger.debug('Requesting injection "%s" with %d operations', id, operations.length)
@@ -658,6 +674,34 @@ module.exports = (options) => {
 				listener.remove()
 				reject(new Error('Wait timeout for topic "' + waitTopic + '"'))
 			}, timeout || 30000)
+		})
+	}
+
+	function waitForEither(successTopic, successHandler, failureTopic, failureHandler, timeout) {
+		return new Promise((resolve, reject) => {
+			logger.debug('Waiting for either "%s" or "%s" with timeout %d', successTopic, failureTopic, timeout)
+			let _timeout, success, error
+			const cleanup = () => {
+				if ( _timeout ) clearTimeout(_timeout)
+				if ( success ) success.remove()
+				if ( error ) error.remove()
+			}
+			_timeout = setTimeout(() => {
+				cleanup()
+				reject(new Error('Timeout'))
+			}, timeout)
+			success = on(successTopic, (topic, payload) => {
+				if ( !successHandler(topic, payload) ) return
+				logger.debug('Received valid "%s"', successTopic)
+				cleanup()
+				resolve(payload)
+			})
+			error = on(failureTopic, (topic, payload) => {
+				if ( !failureHandler(topic, payload) ) return
+				logger.debug('Received valid "%s"', failureTopic)
+				cleanup()
+				reject(new Error(payload.error))
+			})
 		})
 	}
 

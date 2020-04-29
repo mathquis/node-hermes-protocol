@@ -4,6 +4,7 @@ module.exports = {
 	DIALOGUE_SESSION_STARTED			: 'hermes/dialogueManager/sessionStarted',
 	DIALOGUE_SESSION_QUEUED				: 'hermes/dialogueManager/sessionQueued',
 	DIALOGUE_CONTINUE_SESSION			: 'hermes/dialogueManager/continueSession',
+	DIALOGUE_SESSION_CONTINUED			: 'hermes/dialogueManager/sessionContinued',
 	DIALOGUE_END_SESSION				: 'hermes/dialogueManager/endSession',
 	DIALOGUE_SESSION_ENDED				: 'hermes/dialogueManager/sessionEnded',
 	DIALOGUE_INTENT_NOT_RECOGNIZED		: 'hermes/dialogueManager/intentNotRecognized',
