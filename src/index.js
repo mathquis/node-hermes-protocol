@@ -284,15 +284,15 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(topics.ASR_LOAD, handler)
 			},
-			toggleOn: async (siteId, sessionId) => {
-				logger.debug('Toggling ASR "On" on site "%s"', siteId)
+			toggleOn: async () => {
+				logger.debug('Toggling ASR "On"')
 				await publish(topics.ASR_TOGGLE_ON, serialize({}))
 			},
 			onToggleOn: handler => {
 				return on(topics.ASR_TOGGLE_ON, handler)
 			},
-			toggleOff: async (siteId, sessionId) => {
-				logger.debug('Toggling ASR "Off" on site "%s"', siteId)
+			toggleOff: async () => {
+				logger.debug('Toggling ASR "Off"')
 				await publish(topics.ASR_TOGGLE_OFF, serialize({}))
 			},
 			onToggleOff: handler => {
