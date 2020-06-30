@@ -356,7 +356,7 @@ module.exports = (options) => {
 			},
 			intentParsed: async (sessionId, id, input, intentName, confidenceScore, slots) => {
 				logger.debug('Request "%s" recognized intent "%s" from input "%s" for session "%s" with confidence %f', id, intentName, input, sessionId, confidenceScore)
-				await publish('hermes/nlu/intentParsed', serialize({
+				await publish(topics.NLU_INTENT_PARSED, serialize({
 					id, input, intent: {
 						intentName, confidenceScore
 					}, slots, sessionId
@@ -367,7 +367,7 @@ module.exports = (options) => {
 			},
 			intentNotRecognized: async (sessionId, id, input) => {
 				logger.debug('Request "%s" did not recognized intent for input "%s" for session "%s"', id, input, sessionId)
-				await publish('hermes/nlu/intentNotRecognized', serialize({
+				await publish(topics.NLU_INTENT_NOT_RECOGNIZED,, serialize({
 					id, input, sessionId
 				}))
 			},
@@ -376,7 +376,7 @@ module.exports = (options) => {
 			},
 			error: async (err, context) => {
 				logger.error('NLU error:', err)
-				await publish('hermes/nlu/error', serialize({
+				await publish(topics.NLU_ERROR, serialize({
 					error: err,
 					context
 				}))
