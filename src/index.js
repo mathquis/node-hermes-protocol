@@ -367,7 +367,7 @@ module.exports = (options) => {
 			},
 			intentNotRecognized: async (sessionId, id, input) => {
 				logger.debug('Request "%s" did not recognized intent for input "%s" for session "%s"', id, input, sessionId)
-				await publish(topics.NLU_INTENT_NOT_RECOGNIZED,, serialize({
+				await publish(topics.NLU_INTENT_NOT_RECOGNIZED, serialize({
 					id, input, sessionId
 				}))
 			},
@@ -437,6 +437,9 @@ module.exports = (options) => {
 			load: async (siteId) => {
 				logger.debug('Audio server is loaded')
 				await publish(topics.AUDIO_SERVER_LOAD, serialize({siteId}))
+			},
+			onLoad: handler => {
+				return on(topics.AUDIO_SERVER_LOAD, handler)
 			},
 			audioFrame: async (siteId, chunk) => {
 				logger.debug('Audio %d bytes frame on site "%s"', chunk.length, siteId)
