@@ -39,12 +39,11 @@ module.exports = (options) => {
 				})
 
 				client
-					.once('connect', resolve)
 					.once('error', err => {
 						client.off('connect', resolve)
 						reject(err)
 					})
-					.on('connect', () => {
+					.on('connect', async () => {
 						logger.info('Connected to MQTT broker "%s"', MQTT_HOST)
 						client.off('error', reject)
 
@@ -61,6 +60,11 @@ module.exports = (options) => {
 								publish(topic, message)
 							}
 						}
+
+						if ( connectOptions.onConnect ) {
+							await connectOptions.onConnect()
+						}
+						resolve()
 					})
 					.on('reconnect', () => {
 						logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
