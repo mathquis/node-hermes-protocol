@@ -5,10 +5,12 @@ const Topics	= require('./topics')
 module.exports = (options) => {
 	options || (options = {})
 
-	const handlers	= new Map()
-	const queue		= []
-	const logger	= options.logger || console
-	const queueSize	= options.queueSize || 0
+	const handlers				= new Map()
+	const connectHandlers		= []
+	const disconnectHandlers	= []
+	const queue					= []
+	const logger				= options.logger || console
+	const queueSize				= options.queueSize || 0
 
 	const DialogInitTypes = {
 		ACTION: 'action',
@@ -38,12 +40,24 @@ module.exports = (options) => {
 					...connectOptions
 				})
 
+				const cleanup = () => {
+					client
+						.off('connect', onSuccess)
+						.off('error', onFailure)
+				}
+				const onSuccess = () => {
+					cleanup()
+					resolve()
+				}
+				const onFailure = err => {
+					cleanup()
+					reject(err)
+				}
+
 				client
-					.once('error', err => {
-						client.off('connect', resolve)
-						reject(err)
-					})
-					.on('connect', async () => {
+					.once('connect', onSuccess)
+					.once('error', onFailure)
+					.on('connect', () => {
 						logger.info('Connected to MQTT broker "%s"', MQTT_HOST)
 						client.off('error', reject)
 
@@ -61,16 +75,14 @@ module.exports = (options) => {
 							}
 						}
 
-						if ( connectOptions.onConnect ) {
-							await connectOptions.onConnect()
-						}
-						resolve()
+						connectHandlers.forEach(handler => handler())
 					})
 					.on('reconnect', () => {
 						logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
 					})
 					.on('close', () => {
 						logger.info('Disconnected from MQTT broker "%s"', MQTT_HOST)
+						disconnectHandlers.forEach(handler => handler())
 					})
 					.on('disconnect', packet => {
 						logger.debug('Disconnecting from MQTT broker "%s"...', MQTT_HOST)
@@ -95,11 +107,17 @@ module.exports = (options) => {
 					})
 			})
 		},
+		onConnect: handler => {
+			connectHandlers.push(handler)
+		},
 
 		disconnect: () => {
 			logger.debug('Disconnecting...')
 			if ( client ) client.end()
 			client = null
+		},
+		onDisconnect: handler => {
+			disconnectHandlers.push(handler)
 		},
 
 		// Helpers
