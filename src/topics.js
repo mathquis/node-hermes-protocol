@@ -9,8 +9,6 @@ module.exports = {
 	DIALOGUE_SESSION_ENDED				: 'hermes/dialogueManager/sessionEnded',
 	DIALOGUE_INTENT_NOT_RECOGNIZED		: 'hermes/dialogueManager/intentNotRecognized',
 	DIALOGUE_ERROR 						: 'hermes/dialogueManager/error',
-	DIALOGUE_HELLO 						: 'hermes/dialogueManager/hello',
-	DIALOGUE_OFFLINE 					: 'hermes/dialogueManager/offline',
 
 	FEEDBACK_SOUND_TOGGLE_ON			: 'hermes/feedback/sound/toggleOn',
 	FEEDBACK_SOUND_TOGGLE_OFF			: 'hermes/feedback/sound/toggleOff',
@@ -30,23 +28,17 @@ module.exports = {
 	ASR_STOP_LISTENING					: 'hermes/asr/stopListening',
 	ASR_TEXT_CAPTURED					: 'hermes/asr/textCaptured',
 	ASR_ERROR							: 'hermes/asr/error',
-	ASR_HELLO 							: 'hermes/asr/hello',
-	ASR_OFFLINE 						: 'hermes/asr/offline',
 
 	NLU_LOAD 							: 'hermes/nlu/load',
 	NLU_QUERY							: 'hermes/nlu/query',
 	NLU_INTENT_PARSED					: 'hermes/nlu/intentParsed',
 	NLU_INTENT_NOT_RECOGNIZED			: 'hermes/nlu/intentNotRecognized',
 	NLU_ERROR							: 'hermes/nlu/error',
-	NLU_HELLO 							: 'hermes/nlu/hello',
-	NLU_OFFLINE 						: 'hermes/nlu/offline',
 
 	TTS_LOAD 							: 'hermes/tts/load',
 	TTS_SAY								: 'hermes/tts/say',
 	TTS_SAY_FINISHED					: 'hermes/tts/sayFinished',
 	TTS_ERROR							: 'hermes/tts/error',
-	TTS_HELLO 							: 'hermes/tts/hello',
-	TTS_OFFLINE 						: 'hermes/tts/offline',
 
 	AUDIO_SERVER_LOAD 					: 'hermes/audioServer/load',
 	AUDIO_SERVER_AUDIO_FRAME			: 'hermes/audioServer/{siteId}/audioFrame',
@@ -55,8 +47,6 @@ module.exports = {
 	AUDIO_SERVER_PLAY_BYTES_STREAM		: 'hermes/audioServer/{siteId}/playBytesStreaming/{id}/{index}/{isLastChunk}',
 	AUDIO_SERVER_STREAM_FINISHED		: 'hermes/audioServer/{siteId}/streamFinished',
 	AUDIO_SERVER_ERROR 					: 'hermes/audioServer/error',
-	AUDIO_SERVER_HELLO 					: 'hermes/audioServer/hello',
-	AUDIO_SERVER_OFFLINE 				: 'hermes/audioServer/offline',
 
 	INJECTION_PERFORM 					: 'hermes/injection/perform',
 	INJECTION_COMPLETE 					: 'hermes/injection/complete',

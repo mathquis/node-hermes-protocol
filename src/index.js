@@ -111,20 +111,6 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(Topics.DIALOGUE_LOAD, handler)
 			},
-			hello: async () => {
-				logger.debug('Dialogue is saying hello')
-				await hermes.publish(Topics.DIALOGUE_HELLO, hermes.serialize({}))
-			},
-			onHello: handler => {
-				return hermes.on(Topics.DIALOGUE_HELLO, handler)
-			},
-			offline: async () => {
-				logger.debug('Dialogue is offline')
-				await hermes.publish(Topics.DIALOGUE_OFFLINE, hermes.serialize({}))
-			},
-			onOffline: handler => {
-				return hermes.on(Topics.DIALOGUE_OFFLINE, handler)
-			},
 			startSession: async (siteId, init, customData) => {
 				logger.debug('Starting session on site "%s"', siteId)
 				await publish(Topics.DIALOGUE_START_SESSION, serialize({
@@ -311,20 +297,6 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(Topics.ASR_LOAD, handler)
 			},
-			hello: async () => {
-				logger.debug('ASR is saying hello')
-				await hermes.publish(Topics.ASR_HELLO, hermes.serialize({}))
-			},
-			onHello: handler => {
-				return hermes.on(Topics.ASR_HELLO, handler)
-			},
-			offline: async () => {
-				logger.debug('ASR is offline')
-				await hermes.publish(Topics.ASR_OFFLINE, hermes.serialize({}))
-			},
-			onOffline: handler => {
-				return hermes.on(Topics.ASR_OFFLINE, handler)
-			},
 			toggleOn: async () => {
 				logger.debug('Toggling ASR "On"')
 				await publish(Topics.ASR_TOGGLE_ON, serialize({}))
@@ -385,20 +357,6 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(Topics.NLU_LOAD, handler)
 			},
-			hello: async () => {
-				logger.debug('NLU is saying hello')
-				await hermes.publish(Topics.NLU_HELLO, hermes.serialize({}))
-			},
-			onHello: handler => {
-				return hermes.on(Topics.NLU_HELLO, handler)
-			},
-			offline: async () => {
-				logger.debug('NLU is offline')
-				await hermes.publish(Topics.NLU_OFFLINE, hermes.serialize({}))
-			},
-			onOffline: handler => {
-				return hermes.on(Topics.NLU_OFFLINE, handler)
-			},
 			query: async (sessionId, input, intentFilter) => {
 				id = UUID()
 				logger.debug('Querying NLU with "%s" for session "%s"', input, sessionId)
@@ -448,20 +406,6 @@ module.exports = (options) => {
 			onLoad: handler => {
 				return on(Topics.TTS_LOAD, handler)
 			},
-			hello: async () => {
-				logger.debug('TTS is saying hello')
-				await hermes.publish(Topics.TTS_HELLO, hermes.serialize({}))
-			},
-			onHello: handler => {
-				return hermes.on(Topics.TTS_HELLO, handler)
-			},
-			offline: async () => {
-				logger.debug('TTS is offline')
-				await hermes.publish(Topics.TTS_OFFLINE, hermes.serialize({}))
-			},
-			onOffline: handler => {
-				return hermes.on(Topics.TTS_OFFLINE, handler)
-			},
 			say: async (siteId, sessionId, text, lang, timeout) => {
 				id = UUID()
 				logger.debug('Speaking "%s" for session "%s" on site "%s"', text, sessionId, siteId)
@@ -509,20 +453,6 @@ module.exports = (options) => {
 			},
 			onLoad: handler => {
 				return on(Topics.AUDIO_SERVER_LOAD, handler)
-			},
-			hello: async () => {
-				logger.debug('Audio server is saying hello')
-				await hermes.publish(Topics.AUDIO_SERVER_HELLO, hermes.serialize({}))
-			},
-			onHello: handler => {
-				return hermes.on(Topics.AUDIO_SERVER_HELLO, handler)
-			},
-			offline: async () => {
-				logger.debug('Audio server is offline')
-				await hermes.publish(Topics.AUDIO_SERVER_OFFLINE, hermes.serialize({}))
-			},
-			onOffline: handler => {
-				return hermes.on(Topics.AUDIO_SERVER_OFFLINE, handler)
 			},
 			audioFrame: async (siteId, chunk) => {
 				logger.debug('Audio %d bytes frame on site "%s"', chunk.length, siteId)
@@ -728,10 +658,10 @@ module.exports = (options) => {
 		return wrapper
 	}
 
-	async function publish(topic, message) {
+	async function publish(topic, message, options) {
 		if ( client && client.connected ) {
 			logger.debug('Publishing topic "%s"', topic)
-			await client.publish(topic, message)
+			await client.publish(topic, message, options)
 		} else {
 			queue.push({topic, message})
 			if( queue.length > queueSize ) {
