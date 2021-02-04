@@ -595,6 +595,15 @@ module.exports = (options) => {
 			onComplete: (handler) => {
 				return on(Topics.INJECTION_COMPLETE, handler)
 			},
+			failure: async (requestId, err, context) => {
+				logger.debug('Injection "%s" complete', requestId)
+				await publish(Topics.INJECTION_FAILURE, serialize({
+					requestId, error: err, context
+				}))
+			},
+			onFailure: (handler) => {
+				return on(Topics.INJECTION_FAILURE, handler)
+			},
 			waitForComplete: (requestId, timeout) => {
 				logger.debug('Waiting for injection "%s" completed for %d ms', requestId, timeout)
 				return waitFor(Topics.INJECTION_COMPLETE, (topic, payload) => {

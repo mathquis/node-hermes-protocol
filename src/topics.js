@@ -50,6 +50,7 @@ module.exports = {
 
 	INJECTION_PERFORM 					: 'hermes/injection/perform',
 	INJECTION_COMPLETE 					: 'hermes/injection/complete',
+	INJECTION_FAILURE 					: 'hermes/injection/failure',
 	INJECTION_RESET_PERFORM 			: 'hermes/injection/reset/perform',
 	INJECTION_RESET_COMPLETE 			: 'hermes/injection/reset/complete'
 }
