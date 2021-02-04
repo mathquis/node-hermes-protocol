@@ -49,6 +49,7 @@ module.exports = {
 	AUDIO_SERVER_ERROR 					: 'hermes/audioServer/error',
 
 	INJECTION_PERFORM 					: 'hermes/injection/perform',
+	INJECTION_STATUS 					: 'hermes/injection/status',
 	INJECTION_COMPLETE 					: 'hermes/injection/complete',
 	INJECTION_FAILURE 					: 'hermes/injection/failure',
 	INJECTION_RESET_PERFORM 			: 'hermes/injection/reset/perform',

@@ -577,7 +577,15 @@ module.exports = (options) => {
 				id = UUID()
 				logger.debug('Requesting injection "%s" with %d operations', id, operations.length)
 				let p
-				if ( timeout ) p = hermes.injection.waitForComplete(id, timeout)
+				if ( timeout ) {
+					p = waitForEither(
+						Topics.INJECTION_COMPLETE,
+						(topic, payload) => payload.requestId === id,
+						Topics.INJECTION_FAILURE,
+						(topic, payload) => payload.requestId === id,
+						timeout
+					)
+				}
 				await publish(Topics.INJECTION_PERFORM, serialize({
 					id, crossLanguage, lexicon, operations
 				}))
@@ -585,6 +593,15 @@ module.exports = (options) => {
 			},
 			onPerform: handler => {
 				return on(Topics.INJECTION_PERFORM, handler)
+			},
+			status: async (requestId, status, entity, injected) => {
+				logger.debug('Injection "%s" status', requestId)
+				await publish(Topics.INJECTION_STATUS, serialize({
+					requestId, status, entity, injected
+				}))
+			},
+			onStatus: (handler) => {
+				return on(Topics.INJECTION_STATUS, handler)
 			},
 			complete: async (requestId) => {
 				logger.debug('Injection "%s" complete', requestId)
