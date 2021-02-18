@@ -58,7 +58,7 @@ module.exports = (options) => {
 					.once('connect', onSuccess)
 					.once('error', onFailure)
 					.on('connect', () => {
-						logger.info('Connected to MQTT broker "%s"', MQTT_HOST)
+						logger.debug('Connected to MQTT broker "%s"', MQTT_HOST)
 						client.off('error', reject)
 
 						handlers.forEach((handler, topic) => {
@@ -81,7 +81,7 @@ module.exports = (options) => {
 						logger.debug('Reconnecting to MQTT broker "%s"...', MQTT_HOST)
 					})
 					.on('close', () => {
-						logger.info('Disconnected from MQTT broker "%s"', MQTT_HOST)
+						logger.debug('Disconnected from MQTT broker "%s"', MQTT_HOST)
 						disconnectHandlers.forEach(handler => handler())
 					})
 					.on('disconnect', packet => {
@@ -91,10 +91,11 @@ module.exports = (options) => {
 						logger.debug('MQTT client is offline')
 					})
 					.on('error', err => {
-						logger.error(err.message)
+						logger.debug(err.message)
+						disconnectHandlers.forEach(handler => handler(err))
 					})
 					.on('end', () => {
-						logger.info('Terminated connection to MQTT broker "%s"', MQTT_HOST)
+						logger.debug('Terminated connection to MQTT broker "%s"', MQTT_HOST)
 					})
 					.on('message', (t, m) => {
 						logger.debug('Received topic "%s"', t)
