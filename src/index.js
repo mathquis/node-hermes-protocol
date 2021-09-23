@@ -291,10 +291,10 @@ module.exports = (options) => {
 			onToggleOff: handler => {
 				return on(Topics.HOTWORD_TOGGLE_OFF, handler)
 			},
-			detected: async (siteId, modelId, modelVersion, modelType, currentSensitivity) => {
+			detected: async (siteId, modelId, modelVersion, modelType, currentSensitivity, detectionSignalMS, endSignalMS) => {
 				logger.debug('Hotword "%s" detected on site "%s"', modelId, siteId)
 				await publish(format(Topics.HOTWORD_DETECTED, {modelId}), serialize({
-					siteId, modelId, modelVersion, modelType, currentSensitivity
+					siteId, modelId, modelVersion, modelType, currentSensitivity, detectionSignalMS, endSignalMS
 				}))
 			},
 			onDetected: handler => {
@@ -334,10 +334,10 @@ module.exports = (options) => {
 			onToggleOff: handler => {
 				return on(Topics.ASR_TOGGLE_OFF, handler)
 			},
-			startListening: async (siteId, sessionId) => {
+			startListening: async (siteId, sessionId, startSignalMS) => {
 				logger.debug('Start listening ASR for session "%s" on site "%s"', sessionId, siteId)
 				await publish(Topics.ASR_START_LISTENING, serialize({
-					siteId, sessionId
+					siteId, sessionId, startSignalMS
 				}))
 			},
 			onStartListening: handler => {
