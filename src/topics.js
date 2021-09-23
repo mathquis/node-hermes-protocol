@@ -46,6 +46,7 @@ module.exports = {
 	AUDIO_SERVER_PLAY_FINISHED			: 'hermes/audioServer/{siteId}/playFinished',
 	AUDIO_SERVER_PLAY_BYTES_STREAM		: 'hermes/audioServer/{siteId}/playBytesStreaming/{id}/{index}/{isLastChunk}',
 	AUDIO_SERVER_STREAM_FINISHED		: 'hermes/audioServer/{siteId}/streamFinished',
+	AUDIO_SERVER_REPLAY_REQUEST			: 'hermes/audioServer/replayRequest',
 	AUDIO_SERVER_ERROR 					: 'hermes/audioServer/error',
 
 	INJECTION_PERFORM 					: 'hermes/injection/perform',
