@@ -813,7 +813,6 @@ module.exports = (options) => {
 		if ( remainingFrames !== undefined ) {
 			headerLength += 4 + 4 + 4
 		}
-		console.log(headerLength)
 
 		const dataLength	= bytes.length || MAX_WAV
 		const fileSize		= dataLength + headerLength
