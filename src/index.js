@@ -787,30 +787,39 @@ module.exports = (options) => {
 
 	function createWav(bytes, options) {
 		options = options || {}
-		var RIFF = Buffer.from('RIFF')
-		var WAVE = Buffer.from('WAVE')
-		var fmt  = Buffer.from('fmt ')
-		var time = Buffer.from('time')
-		var rpid = Buffer.from('rpid')
-		var rprf = Buffer.from('rprf')
-		var data = Buffer.from('data')
+		const RIFF				= Buffer.from('RIFF')
+		const WAVE				= Buffer.from('WAVE')
+		const fmt				= Buffer.from('fmt ')
+		const data				= Buffer.from('data')
 
-		var MAX_WAV			= 4294967295 - 100
-		var endianness		= 'LE'
-		var format			= 1 // raw PCM
-		var channels		= options.channels || 1
-		var sampleRate		= options.sampleRate || 44100
-		var bitDepth		= options.bitDepth || 16
+		const MAX_WAV			= 4294967295 - 100
+		const endianness		= 'LE'
+		const format			= 1 // raw PCM
+		const channels			= options.channels || 1
+		const sampleRate		= options.sampleRate || 44100
+		const bitDepth			= options.bitDepth || 16
 
-		var timestamp		= options.time || 0
-		var replayId		= options.replayId || ''
-		var remainingFrames	= options.remainingFrames || 0
+		const time				= options.time
+		const replayId			= options.replayId
+		const remainingFrames	= options.remainingFrames
 
-		var headerLength	= 80 + replayId.length
-		var dataLength		= bytes.length || MAX_WAV
-		var fileSize		= dataLength + headerLength
-		var header			= Buffer.alloc(headerLength)
-		var offset			= 0
+		let headerLength = 44
+		if ( time !== undefined ) {
+			headerLength += 4 + 4 + 8
+		}
+		if ( replayId !== undefined ) {
+			headerLength += 4 + 4 + replayId.length
+		}
+		if ( remainingFrames !== undefined ) {
+			headerLength += 4 + 4 + 4
+		}
+		console.log(headerLength)
+
+		const dataLength	= bytes.length || MAX_WAV
+		const fileSize		= dataLength + headerLength
+		const header		= Buffer.alloc(headerLength)
+
+		let offset			= 0
 
 		// write the "RIFF" identifier
 		RIFF.copy(header, offset)
@@ -861,32 +870,41 @@ module.exports = (options) => {
 		offset += 2
 
 		// write the "time" metadata
-		time.copy(header, offset)
-		offset += time.length
+		if ( time !== undefined ) {
+			const time = Buffer.from('time')
+			time.copy(header, offset)
+			offset += time.length
 
-		// write the timestamp as U64LE
-		header['writeUInt32' + endianness](8, offset)
-		offset += 4
-		header['writeBigUInt64' + endianness](BigInt(timestamp), offset)
-		offset += 8
+			// write the timestamp as U64LE
+			header['writeUInt32' + endianness](8, offset)
+			offset += 4
+			header['writeBigUInt64' + endianness](BigInt(options.time), offset)
+			offset += 8
+		}
 
 		// write the "rpid" metadata
-		rpid.copy(header, offset)
-		offset += time.length
+		if ( replayId !== undefined ) {
+			const rpid = Buffer.from('rpid')
+			rpid.copy(header, offset)
+			offset += rpid.length
 
-		header['writeUInt32' + endianness](replayId.length, offset)
-		offset += 4
-		header['write'](replayId, offset)
-		offset += replayId.length
+			header['writeUInt32' + endianness](replayId.length, offset)
+			offset += 4
+			header['write'](replayId, offset)
+			offset += replayId.length
+		}
 
 		// write the "rprf" metadata
-		rprf.copy(header, offset)
-		offset += rprf.length
+		if ( remainingFrames !== undefined ) {
+			const rprf = Buffer.from('rprf')
+			rprf.copy(header, offset)
+			offset += rprf.length
 
-		header['writeUInt32' + endianness](4, offset)
-		offset += 4
-		header['writeUInt32' + endianness](remainingFrames, offset)
-		offset += 4
+			header['writeUInt32' + endianness](4, offset)
+			offset += 4
+			header['writeUInt32' + endianness](options.remainingFrames, offset)
+			offset += 4
+		}
 
 		// write the "data" sub-chunk ID
 		data.copy(header, offset)
@@ -901,108 +919,100 @@ module.exports = (options) => {
 	}
 
 	function readWav(bytes) {
-		var endianness = 'LE'
-		var offset = 0
+
+		let offset = 0
+
+		const endianness = 'LE'
 
 		const RIFF = bytes.slice(0, 4)
 		offset += RIFF.length
 
 		// read the file size minus the identifier and this 32-bit int
-		var filesize = bytes['readUInt32' + endianness](offset) + 8
+		const filesize = bytes['readUInt32' + endianness](offset) + 8
 		offset += 4
 
 		// read the "WAVE" identifier
 		const WAVE = bytes.slice(offset, offset + 4)
 		offset += WAVE.length
 
-		// read the "fmt " sub-chunk identifier
-		const fmt = bytes.slice(offset, offset + 4)
-		offset += fmt.length
-
-		// read the size of the "fmt " chunk
-		// XXX: value of 16 is hard-coded for raw PCM format. other formats have
-		// different size.
-		var fmtSize = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		// read the audio format code
-		var format = bytes['readUInt16' + endianness](offset)
-		offset += 2
-
-		// read the number of channels
-		var channels = bytes['readUInt16' + endianness](offset)
-		offset += 2
-
-		// read the sample rate
-		var sampleRate = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		// read the byte rate
-		var byteRate = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		// read the block align
-		var blockAlign = bytes['readUInt16' + endianness](offset)
-		offset += 2
-
-		// read the bits per sample
-		var bitDepth = bytes['readUInt16' + endianness](offset)
-		offset += 2
-
-		// read the "time" metadata
-		const time = bytes.slice(offset, offset + 4)
-		offset += time.length
-
-		// read the timestamp as U64LE
-		var timestampLength = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		var timestamp = Number(bytes['readBigUInt64' + endianness](offset))
-		offset += timestampLength
-
-		// read the "rpid" metadata
-		const rpid = bytes.slice(offset, offset + 4)
-		offset += rpid.length
-
-		var replayIdLength = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		var replayId = bytes.slice(offset, offset + replayIdLength)
-		offset += replayIdLength
-
-		// read the "rprf" metadata
-		var rprf = bytes.slice(offset, offset + 4)
-		offset += rprf.length
-
-		var remainingFramesLength = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		var remainingFrames = bytes['readUInt32' + endianness](offset)
-		offset += remainingFramesLength
-
-		// read the "data" sub-chunk ID
-		var data = bytes.slice(offset, offset + 4)
-		offset += data.length
-
-		// read the remaining length of the rest of the data
-		var sampleLength = bytes['readUInt32' + endianness](offset)
-		offset += 4
-
-		var samples = bytes.slice(offset, offset + sampleLength)
-
-		return {
-			endianness,
-			format,
-			channels,
-			sampleRate,
-			byteRate,
-			blockAlign,
-			bitDepth,
-			time: timestamp,
-			replayId: replayId.toString(),
-			remainingFrames,
-			data: samples
+		const wav = {
+			endianness
 		}
+
+		while ( offset < bytes.length ) {
+			const chunk = bytes.slice(offset, offset + 4)
+			offset += chunk.length
+			switch ( chunk.toString() ) {
+				case 'fmt ':
+					// read the size of the "fmt " chunk
+					// XXX: value of 16 is hard-coded for raw PCM format. other formats have
+					// different size.
+					wav.fmtSize = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					// read the audio format code
+					wav.format = bytes['readUInt16' + endianness](offset)
+					offset += 2
+
+					// read the number of channels
+					wav.channels = bytes['readUInt16' + endianness](offset)
+					offset += 2
+
+					// read the sample rate
+					wav.sampleRate = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					// read the byte rate
+					wav.byteRate = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					// read the block align
+					wav.blockAlign = bytes['readUInt16' + endianness](offset)
+					offset += 2
+
+					// read the bits per sample
+					wav.bitDepth = bytes['readUInt16' + endianness](offset)
+					offset += 2
+					break
+
+				case 'time':
+					// read the timestamp as U64LE
+					var timestampLength = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					wav.time = Number(bytes['readBigUInt64' + endianness](offset))
+					offset += timestampLength
+					break
+
+				case 'rpid':
+					var replayIdLength = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					wav.replayId = bytes.slice(offset, offset + replayIdLength).toString()
+					offset += replayIdLength
+					break
+
+				case 'rprf':
+					// read the "rprf" metadata
+					var remainingFramesLength = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					wav.remainingFrames = bytes['readUInt32' + endianness](offset)
+					offset += remainingFramesLength
+					break
+
+				case 'data':
+					// read the remaining length of the rest of the data
+					var sampleLength = bytes['readUInt32' + endianness](offset)
+					offset += 4
+
+					wav.data = bytes.slice(offset, offset + sampleLength)
+					offset += sampleLength
+					break
+			}
+		}
+
+		return wav
 	}
 
 	return hermes
