@@ -1,6 +1,6 @@
-const MQTT		= require('mqtt')
-const UUID 		= require('uuid').v4
-const Topics	= require('./topics')
+const MQTT			= require('mqtt')
+const {v4: UUID}	= require('uuid')
+const Topics		= require('./topics')
 
 module.exports = (options) => {
 	options || (options = {})
