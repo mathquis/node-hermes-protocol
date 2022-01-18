@@ -296,10 +296,10 @@ module.exports = (options) => {
 			onToggleOff: handler => {
 				return on(Topics.HOTWORD_TOGGLE_OFF, handler)
 			},
-			detected: async (siteId, modelId, modelVersion, modelType, currentSensitivity, detectionSignalMS, endSignalMS) => {
+			detected: async (siteId, modelId, modelVersion, modelType, confidence, currentSensitivity, detectionSignalMS, endSignalMS) => {
 				logger.debug('Hotword "%s" detected on site "%s"', modelId, siteId)
 				await publish(format(Topics.HOTWORD_DETECTED, {modelId}), serialize({
-					siteId, modelId, modelVersion, modelType, currentSensitivity, detectionSignalMS, endSignalMS
+					siteId, modelId, modelVersion, modelType, confidence, currentSensitivity, detectionSignalMS, endSignalMS
 				}))
 			},
 			onDetected: handler => {
